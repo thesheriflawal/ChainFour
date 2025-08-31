@@ -1119,6 +1119,14 @@ const ConnectFour = ({
         if (timerRef.current) {
           clearInterval(timerRef.current);
         }
+
+        // Add leaderboard update
+        const gameResult = Number(winner) === myPlayerNumber ? "win" : "loss";
+        updateLeaderboard(
+          playerAddress,
+          getPlayerName(myPlayerNumber),
+          gameResult
+        );
       }
     };
 
@@ -1872,6 +1880,68 @@ const GameLobby = () => {
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [roomIdToJoin, setRoomIdToJoin] = useState("");
+  const [leaderboard, setLeaderboard] = useState([]);
+  const [playerStats, setPlayerStats] = useState({
+    wins: 0,
+    losses: 0,
+    gamesPlayed: 0,
+  });
+
+  const updateLeaderboard = async (playerAddress, username, gameResult) => {
+    try {
+      const res = await fetch("/api/leaderboard", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ playerAddress, username, gameResult }),
+      });
+
+      if (!res.ok) {
+        throw new Error("Failed to update leaderboard");
+      }
+
+      const data = await res.json();
+      console.log("Leaderboard updated:", data);
+      return data;
+    } catch (error) {
+      console.error("Error updating leaderboard:", error);
+    }
+  };
+
+  const fetchLeaderboard = async () => {
+    try {
+      const res = await fetch("/api/leaderboard", {
+        method: "GET",
+      });
+
+      if (!res.ok) {
+        throw new Error("Failed to fetch leaderboard");
+      }
+
+      const data = await res.json();
+      setLeaderboard(data);
+      return data;
+    } catch (error) {
+      console.error("Error fetching leaderboard:", error);
+    }
+  };
+
+  const fetchPlayerStats = async (playerAddress) => {
+    try {
+      const res = await fetch(`/api/leaderboard?player=${playerAddress}`, {
+        method: "GET",
+      });
+
+      if (!res.ok) {
+        throw new Error("Failed to fetch player stats");
+      }
+
+      const data = await res.json();
+      setPlayerStats(data);
+      return data;
+    } catch (error) {
+      console.error("Error fetching player stats:", error);
+    }
+  };
 
   const connectWallet = async () => {
     try {
@@ -2649,6 +2719,23 @@ const GameLobby = () => {
           </div>
         )}
 
+        {/* Leaderboard View */}
+        {currentView === "leaderboard" && (
+          <div className="max-w-2xl mx-auto bg-gray-800 rounded-lg p-6 shadow-xl">
+            <h2 className="text-2xl font-semibold text-white mb-4 flex items-center gap-2">
+              <Trophy className="w-6 h-6" />
+              Leaderboard
+            </h2>
+            {/* Leaderboard table/list component here */}
+            <button
+              onClick={() => setCurrentView("home")}
+              className="mt-6 w-full px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition-colors"
+            >
+              ← Back to Lobby
+            </button>
+          </div>
+        )}
+
         {/* Home View */}
         {currentView === "home" && (
           <div className="max-w-md mx-auto bg-gray-800 rounded-lg p-6 shadow-xl">
@@ -2721,6 +2808,13 @@ const GameLobby = () => {
                     <AlertTriangle className="w-5 h-5" />
                   )}
                   Leave Current Game
+                </button>
+                <button
+                  onClick={() => setCurrentView("leaderboard")}
+                  className="w-full px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors flex items-center justify-center gap-2"
+                >
+                  <Trophy className="w-5 h-5" />
+                  Leaderboard
                 </button>
               </div>
             </div>
